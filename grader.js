@@ -26,6 +26,9 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 
+var rest = require('restler');
+var URL_DEFAULT = "http://secret-island-4847.herokuapp.com/";
+
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -34,6 +37,15 @@ var assertFileExists = function(infile) {
     }
     return instr;
 };
+
+var assertURLExists = function(inURL) {  
+
+};
+
+var dummy = function(str) {
+    return str;
+}
+
 
 var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
@@ -53,14 +65,41 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     }
     return out;
 };
+
+
+var checkData = function(data, checksfile) {
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+        var present = data.indexOf(checks[ii]) > -1;
+        out[checks[ii]] = present;
+    }
+    return out;
+
+}
+
 if(require.main == module) {
     program
         .option('-c, --checks ', 'Path to checks.json', assertFileExists, CHECKSFILE_DEFAULT)
-        .option('-f, --file ', 'Path to index.html', assertFileExists, HTMLFILE_DEFAULT)
+        .option('-f, --file ', 'Path to index.html', dummy, HTMLFILE_DEFAULT)
+        .option('-u, --url ', 'URL to parse ', dummy, URL_DEFAULT)
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if(program.url){
+        console.error("URL detected: " + program.url);
+        rest.get(program.url).on('complete',function(data){
+            //
+            var checkJson = checkData(data,program.checks);
+            var outJson = JSON.stringify(checkJson, null, 4);
+            console.log(outJson);
+        });
+
+    }
+    else {
+        console.error("Using file.");
+        var checkJson = checkHtmlFile(program.file, program.checks);
+        var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
