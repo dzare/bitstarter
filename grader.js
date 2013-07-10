@@ -51,6 +51,10 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
+var cheerioData = function(data){
+    return cheerio.load(data);
+};
+
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
@@ -68,10 +72,11 @@ var checkHtmlFile = function(htmlfile, checksfile) {
 
 
 var checkData = function(data, checksfile) {
+    $ = cheerioData(data);
     var checks = loadChecks(checksfile).sort();
     var out = {};
     for(var ii in checks) {
-        var present = data.indexOf(checks[ii]) > -1;
+        var present = $(checks[ii]).length > 0;
         out[checks[ii]] = present;
     }
     return out;
@@ -81,13 +86,12 @@ var checkData = function(data, checksfile) {
 if(require.main == module) {
     program
         .option('-c, --checks ', 'Path to checks.json', assertFileExists, CHECKSFILE_DEFAULT)
-        .option('-f, --file ', 'Path to index.html', dummy, HTMLFILE_DEFAULT)
-        .option('-u, --url ', 'URL to parse ', dummy, URL_DEFAULT)
+        .option('-f, --file [index.html]', 'Path to index.html', dummy, HTMLFILE_DEFAULT)
+        .option('-u, --url [http://]', 'URL to parse ', dummy, URL_DEFAULT)
         .parse(process.argv);
     if(program.url){
         console.error("URL detected: " + program.url);
         rest.get(program.url).on('complete',function(data){
-            //
             var checkJson = checkData(data,program.checks);
             var outJson = JSON.stringify(checkJson, null, 4);
             console.log(outJson);
